@@ -1,10 +1,15 @@
 package tk.struk.qrreader;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.os.Vibrator;
+import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -13,6 +18,16 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -28,6 +43,7 @@ public class MainActivity extends AppCompatActivity {
     private QREader qrEader;
 
     boolean hasCameraPermission = false;
+    private String lastScannedData = "";
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
@@ -37,6 +53,8 @@ public class MainActivity extends AppCompatActivity {
 
         txtResult = findViewById(R.id.scanText);
         resultView = findViewById(R.id.resultView);
+        resultView.setMovementMethod(ScrollingMovementMethod.getInstance());
+
 
         final Button stateBtn = findViewById(R.id.btn_start_stop);
         // change of reader state in dynamic
@@ -44,10 +62,10 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 if (qrEader.isCameraRunning()) {
-                    stateBtn.setText("Start QREader");
+                    stateBtn.setText(R.string.start_qr_reader);
                     qrEader.stop();
                 } else {
-                    stateBtn.setText("Stop QREader");
+                    stateBtn.setText(R.string.stop_qr_reader);
                     qrEader.start();
                 }
             }
@@ -86,13 +104,74 @@ public class MainActivity extends AppCompatActivity {
         qrEader = new QREader.Builder(this, mySurfaceView, new QRDataListener() {
             @Override
             public void onDetected(final String data) {
+                if (data.equals(lastScannedData)) return;
+                lastScannedData = data;
                 Log.d(LOGTAG, "Value : " + data);
+                final long mills = 100L;
+                final Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+                assert vibrator != null;
+                vibrator.vibrate(mills);
                 txtResult.post(new Runnable() {
                     @Override
                     public void run() {
+                        txtResult.setAllCaps(true);
+                        txtResult.setTextColor(getResources().getColor(android.R.color.black));
                         txtResult.setText(data);
 
-                        resultView.setText("OK");
+                        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+
+                        String url = sharedPref.getString("url", "");
+                        String login = sharedPref.getString("login", "");
+                        String password = sharedPref.getString("password", "");
+                        String list_id = sharedPref.getString("list_id", "");
+
+                        JSONObject jsonPayload = new JSONObject();
+                        try {
+                            jsonPayload
+                                    .put("login", login)
+                                    .put("password", password)
+                                    .put("list_id", list_id)
+                                    .put("number", data);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+
+                        RequestQueue MyRequestQueue = Volley.newRequestQueue(getApplication());
+                        JsonObjectRequest jsObjRequest = new JsonObjectRequest
+                                (Request.Method.POST, url, jsonPayload, new Response.Listener<JSONObject>() {
+
+                                    @Override
+                                    public void onResponse(JSONObject response) {
+                                        vibrator.vibrate(mills);
+                                        String description = "", status = "";
+                                        try {
+                                            description = response.getString("description");
+                                            status = response.getString("status");
+                                        } catch (JSONException e) {
+                                            e.printStackTrace();
+                                        }
+                                        if (status.equals("error")) {
+                                            txtResult.setText(R.string.string_error);
+                                            txtResult.setTextColor(getResources().getColor(android.R.color.holo_red_light));
+                                        } else {
+                                            txtResult.setText(R.string.string_ok);
+                                            txtResult.setTextColor(getResources().getColor(android.R.color.holo_green_light));
+                                        }
+                                        resultView.setText(description);
+                                    }
+                                }, new Response.ErrorListener() {
+
+                                    @Override
+                                    public void onErrorResponse(VolleyError error) {
+                                        // TODO Auto-generated method stub
+
+                                    }
+                                });
+
+
+                        MyRequestQueue.add(jsObjRequest);
+
+
                     }
                 });
             }

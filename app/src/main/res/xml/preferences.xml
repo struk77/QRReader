@@ -24,7 +24,6 @@
         android:title="@string/payload_values" >
 
         <EditTextPreference
-            android:inputType="text"
             android:key="@string/string_login"
             android:maxLines="1"
             android:selectAllOnFocus="true"
@@ -40,9 +39,8 @@
             android:title="@string/string_pass" />
 
         <EditTextPreference
-            android:defaultValue="list1"
-            android:inputType="text"
-            android:key="list1"
+            android:defaultValue="list_id"
+            android:key="@string/string_list_id"
             android:maxLines="1"
             android:selectAllOnFocus="true"
             android:singleLine="true"

@@ -26,6 +26,8 @@
     <string name="payload_category">payload</string>
     <string name="string_list_id">list_id</string>
     <string name="login_if_required">Login (if required)</string>
+    <string name="string_ok">OK</string>
+    <string name="string_error">Error!</string>
 
 
 </resources>
