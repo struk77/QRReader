@@ -9,6 +9,8 @@ import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.Html;
+import android.text.Spanned;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.Menu;
@@ -157,7 +159,8 @@ public class MainActivity extends AppCompatActivity {
                                             txtResult.setText(R.string.string_ok);
                                             txtResult.setTextColor(getResources().getColor(android.R.color.holo_green_light));
                                         }
-                                        resultView.setText(description);
+                                        Spanned result = Html.fromHtml(description);
+                                        resultView.setText(result);
                                     }
                                 }, new Response.ErrorListener() {
 
