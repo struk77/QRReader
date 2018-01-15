@@ -25,6 +25,7 @@
 
         <EditTextPreference
             android:key="@string/string_login"
+            android:defaultValue=" "
             android:maxLines="1"
             android:selectAllOnFocus="true"
             android:singleLine="true"
